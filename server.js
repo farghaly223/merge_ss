@@ -13,7 +13,11 @@ const { User, SolveLog }           = require('./models/User');
 const { solveIDDFS, validateGrid } = require('./solver');
 
 const app    = express();
-const PORT   = parseInt(process.env.PORT || '3000');
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server is booming on port ${PORT}`);
+});
 const SECRET = process.env.JWT_SECRET || 'fallback_secret_change_me';
 
 app.use(cors());
