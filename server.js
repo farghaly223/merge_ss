@@ -135,33 +135,36 @@ app.get('*', (_req, res) =>
 /* ════════════════════════════════════════
    START - تشغيل السيرفر والداتابيز
 ════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   START - تشغيل السيرفر والداتابيز
+════════════════════════════════════════ */
 async function start() {
-  console.log('\n🐉 Animal Merge Solver — Starting...');
-  try {
-    // 1. اختبار الاتصال
-    await testConnection();
-    console.log('✅ Database connected');
+  console.log('\n🐉 Animal Merge Solver — Starting...');
+  try {
+    // 1. اختبار الاتصال الأساسي
+    await testConnection();
+    console.log('✅ Database connected');
 
-    // 2. بناء/تحديث الجداول (حل مشكلة Table not exist)
-    // ملاحظة: لو بتستخدم Sequelize Models، تأكد أنها مرتبطة بنفس الـ instance
-    if (sequelize) {
-        await sequelize.sync({ alter: true });
-        console.log('✅ Tables checked/created in Aiven MySQL');
-    }
+    // 2. الجزء السحري: بناء الجداول أوتوماتيكياً (Sync)
+    // ده اللي هيحل مشكلة "Table doesn't exist"
+    await sequelize.sync({ alter: true });
+    console.log("✅ Database tables are synced & ready!");
 
-    // 3. تشغيل السماع للطلبات
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log('✅ Server running on port ' + PORT);
-    });
+    // 3. تشغيل السماع للطلبات (Listen)
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('✅ Server running at port: ' + PORT);
+      console.log('🚀 Go to your website and Register now!');
+    });
 
-  } catch (e) {
-    console.error('❌ Database connection FAILED:', e.message);
-    process.exit(1);
-  }
+  } catch (e) {
+    console.error('❌ Database connection FAILED:', e.message);
+    // لو فيه مشكلة في الـ IP Allowance أو الباسورد هيظهر هنا
+    process.exit(1);
+  }
 }
-
-// تصدير الـ app لـ Vercel
-module.exports = app;
 
 // تشغيل الفانكشن
 start();
+
+// مهم جداً لـ Vercel
+module.exports = app;
