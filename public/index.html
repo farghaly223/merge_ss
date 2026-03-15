@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Animal Merge Solver</title>
+<style>
+/* ── Reset ── */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+
+/* ── Base ── */
+body{
+  font-family:'Segoe UI',Arial,sans-serif;
+  background:#0b0918;color:#ddd5f5;
+  font-size:14px;line-height:1.5;
+  min-height:100vh;
+}
+
+/* ── Pages ── */
+.pg{display:none}
+.pg.active{display:block}
+
+/* ── Auth page ── */
+#pg-auth{
+  min-height:100vh;display:flex;
+  align-items:center;justify-content:center;padding:20px;
+}
+.auth-box{
+  background:#13102a;border:1px solid #3a2e6a;
+  border-radius:12px;padding:32px 28px;
+  width:100%;max-width:400px;
+}
+.auth-logo{text-align:center;margin-bottom:24px}
+.auth-logo .emoji{font-size:48px;display:block;margin-bottom:8px}
+.auth-logo h1{
+  font-size:20px;font-weight:700;letter-spacing:2px;
+  color:#ffd700;text-transform:uppercase;
+}
+.auth-logo p{font-size:11px;color:#5a4890;letter-spacing:2px;margin-top:4px}
+
+/* ── Tabs ── */
+.tab-bar{
+  display:flex;border-bottom:1px solid #2a2050;
+  margin-bottom:24px;
+}
+.tab{
+  flex:1;padding:10px;background:none;border:none;
+  color:#5a4890;font-size:13px;font-weight:600;
+  cursor:pointer;letter-spacing:1px;text-transform:uppercase;
+  border-bottom:2px solid transparent;transition:.15s;
+}
+.tab:hover{color:#c8b8f0}
+.tab.on{color:#ffd700;border-bottom-color:#ffd700}
+
+/* ── Form elements ── */
+.field{margin-bottom:16px}
+.field label{
+  display:block;font-size:11px;color:#6a5898;
+  letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;
+}
+.field input{
+  width:100%;background:#1c1635;border:1.5px solid #3a2e6a;
+  color:#ddd5f5;border-radius:8px;padding:11px 14px;
+  font-size:14px;outline:none;transition:border-color .15s;
+}
+.field input:focus{border-color:#9060e0}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  gap:6px;border:none;border-radius:8px;font-size:13px;
+  font-weight:600;cursor:pointer;transition:.15s;
+  padding:10px 18px;text-transform:uppercase;letter-spacing:.5px;
+}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-gold{background:#e6c000;color:#1a0e00}
+.btn-gold:hover:not(:disabled){background:#ffd700;box-shadow:0 0 14px rgba(255,215,0,.4)}
+.btn-full{width:100%;padding:13px}
+.btn-ghost{background:transparent;border:1.5px solid #3a2e6a;color:#c8b8f0}
+.btn-ghost:hover:not(:disabled){border-color:#9060e0;color:#ddd5f5}
+.btn-green{background:transparent;border:1.5px solid rgba(0,200,100,.4);color:#00cc66}
+.btn-green:hover:not(:disabled){background:rgba(0,200,100,.1)}
+.btn-red{background:transparent;border:1.5px solid rgba(220,50,80,.4);color:#ff5577}
+.btn-red:hover:not(:disabled){background:rgba(220,50,80,.1)}
+.btn-blue{background:transparent;border:1.5px solid rgba(60,120,240,.4);color:#6699ff}
+.btn-blue:hover:not(:disabled){background:rgba(60,120,240,.1)}
+.btn-sm{padding:6px 12px;font-size:11px}
+
+/* ── Messages ── */
+.msg{
+  min-height:20px;font-size:12px;text-align:center;
+  margin-top:10px;padding:4px 0;
+}
+.msg.err{color:#ff5577}
+.msg.ok{color:#00cc66}
+
+/* ── Server status bar ── */
+#server-status{
+  background:#1a0a0a;border:1px solid rgba(255,85,119,.4);
+  border-radius:8px;padding:10px 14px;margin-bottom:20px;
+  font-size:12px;color:#ff5577;display:none;
+}
+#server-status.ok{
+  background:#0a1a10;border-color:rgba(0,200,100,.4);color:#00cc66;
+}
+
+/* ════════════════════════════════════
+   NAVBAR
+════════════════════════════════════ */
+.navbar{
+  background:#0d0a20;border-bottom:1px solid #2a2050;
+  padding:10px 20px;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:8px;
+}
+.nav-brand{display:flex;align-items:center;gap:8px;font-weight:700;color:#ffd700;font-size:15px;letter-spacing:1px}
+.nav-right{display:flex;align-items:center;gap:10px}
+.badge{
+  display:inline-block;padding:3px 9px;border-radius:20px;
+  font-size:11px;font-weight:600;border:1px solid;
+}
+.badge-gold  {border-color:rgba(255,215,0,.4);color:#ffd700;background:rgba(255,215,0,.08)}
+.badge-green {border-color:rgba(0,200,100,.4);color:#00cc66;background:rgba(0,200,100,.07)}
+.badge-red   {border-color:rgba(220,50,80,.4);color:#ff5577;background:rgba(220,50,80,.07)}
+.badge-blue  {border-color:rgba(60,120,240,.4);color:#6699ff;background:rgba(60,120,240,.07)}
+.badge-purple{border-color:rgba(160,80,240,.4);color:#cc99ff;background:rgba(160,80,240,.07)}
+.badge-gray  {border-color:#3a2e6a;color:#8070b8;background:rgba(58,46,106,.18)}
+
+/* ════════════════════════════════════
+   ADMIN PAGE
+════════════════════════════════════ */
+.admin-body{padding:20px;max-width:1100px;margin:0 auto}
+.stats-row{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:12px;margin-bottom:24px;
+}
+@media(max-width:600px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-card{
+  background:#13102a;border:1px solid #2a2050;
+  border-radius:10px;padding:16px;text-align:center;
+}
+.stat-num{font-size:28px;font-weight:700;margin-bottom:4px}
+.stat-lbl{font-size:10px;color:#5a4890;letter-spacing:1px;text-transform:uppercase}
+
+.card{background:#13102a;border:1px solid #2a2050;border-radius:12px;padding:20px}
+.card-title{
+  font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  color:#5a4890;margin-bottom:14px;display:flex;
+  align-items:center;justify-content:space-between;
+}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{
+  padding:10px 12px;text-align:left;font-size:10px;
+  color:#5a4890;font-weight:600;letter-spacing:1px;
+  text-transform:uppercase;border-bottom:1px solid #2a2050;
+}
+.tbl td{padding:11px 12px;border-bottom:1px solid #1a1535;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl-actions{display:flex;gap:6px;flex-wrap:wrap}
+.tbl-wrap{overflow-x:auto}
+
+/* ════════════════════════════════════
+   SOLVER PAGE
+════════════════════════════════════ */
+.solver-body{padding:20px;max-width:1100px;margin:0 auto}
+.solver-grid{
+  display:grid;
+  grid-template-columns:340px 1fr;
+  gap:20px;align-items:start;
+}
+@media(max-width:780px){.solver-grid{grid-template-columns:1fr}}
+
+.left-col{display:flex;flex-direction:column;gap:14px}
+.right-col{display:flex;flex-direction:column;gap:14px}
+
+/* ── Game board ── */
+#board-wrap{}
+#board{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+}
+.cell{
+  aspect-ratio:1;border-radius:9px;border:2px solid;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  cursor:pointer;transition:all .12s;user-select:none;
+}
+.cell:hover{transform:scale(1.07);filter:brightness(1.4)}
+.cell:active{transform:scale(.94)}
+.cell-emo{font-size:clamp(16px,5vw,28px);line-height:1}
+.cell-lv{font-size:9px;opacity:.5;margin-top:2px}
+.cell.merged{animation:pop .22s ease}
+@keyframes pop{0%{transform:scale(.35)}60%{transform:scale(1.22)}100%{transform:scale(1)}}
+
+/* level colors */
+.lv0 {background:#110e24;border-color:#2a2050}
+.lv1 {background:#0d1a1a;border-color:#1a6050}
+.lv2 {background:#0d1522;border-color:#1a3870}
+.lv3 {background:#0d1a0a;border-color:#2a5518}
+.lv4 {background:#1a1508;border-color:#504010}
+.lv5 {background:#1a0e08;border-color:#602810}
+.lv6 {background:#160818;border-color:#502070}
+.lv7 {background:#0f0820;border-color:#302090}
+.lv8 {background:#080d22;border-color:#102070}
+.lv9 {background:#060f1a;border-color:#0a3570;box-shadow:0 0 8px rgba(20,100,220,.35)}
+.lv10{background:#1c0e00;border-color:#cc7a00;box-shadow:0 0 18px rgba(255,140,0,.55)}
+
+/* ── Moves budget ── */
+.moves-row{
+  display:flex;align-items:center;gap:8px;
+  background:#13102a;border:1px solid #2a2050;
+  border-radius:8px;padding:10px 14px;
+}
+.moves-lbl{font-size:10px;color:#5a4890;letter-spacing:1px;text-transform:uppercase;margin-right:auto}
+.moves-num{
+  font-size:24px;font-weight:700;color:#ffd700;
+  min-width:48px;text-align:right;
+}
+.moves-bar-track{
+  height:3px;background:#1a1035;border-radius:2px;
+  overflow:hidden;margin-top:6px;
+}
+.moves-bar-fill{
+  height:100%;background:linear-gradient(90deg,#8840d0,#ffd700);
+  border-radius:2px;transition:width .3s;
+}
+#moves-input{
+  width:54px;text-align:center;background:#1c1635;
+  border:1.5px solid #3a2e6a;color:#ddd5f5;
+  border-radius:6px;padding:4px 6px;font-size:13px;outline:none;
+}
+#moves-input:focus{border-color:#9060e0}
+.num-btn{
+  background:#1c1635;border:1.5px solid #3a2e6a;color:#c8b8f0;
+  border-radius:6px;width:28px;height:28px;cursor:pointer;
+  font-size:16px;display:flex;align-items:center;justify-content:center;
+  transition:.14s;
+}
+.num-btn:hover{border-color:#9060e0}
+
+/* ── D-pad ── */
+.dpad{
+  display:grid;
+  grid-template-columns:repeat(3,50px);
+  grid-template-rows:repeat(3,50px);
+  gap:5px;justify-content:center;
+}
+.dpad-btn{
+  width:50px;height:50px;border-radius:9px;
+  background:#1c1635;border:1.5px solid #3a2e6a;color:#c8b8f0;
+  font-size:22px;cursor:pointer;transition:.14s;
+  display:flex;align-items:center;justify-content:center;
+}
+.dpad-btn:hover{border-color:#9060e0;color:#ddd5f5;background:#26206a}
+.dpad-btn:active{transform:scale(.88)}
+.dpad-btn.best{
+  border-color:#00cc66;color:#00cc66;background:rgba(0,200,100,.12);
+  box-shadow:0 0 12px rgba(0,200,100,.45);
+}
+.dpad-btn.dead{opacity:.2;cursor:not-allowed}
+.dpad-center{
+  width:50px;height:50px;border-radius:9px;
+  background:#13102a;border:1px solid #2a2050;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#3a2e6a;text-align:center;line-height:1.3;
+}
+
+/* ── Action buttons ── */
+.action-col{display:flex;flex-direction:column;gap:8px}
+.btn-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* ── Result card ── */
+.result-card{
+  background:#13102a;border:1px solid #2a2050;
+  border-radius:12px;padding:20px;
+  text-align:center;min-height:180px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.result-card-title{
+  font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:#5a4890;margin-bottom:14px;align-self:flex-start;
+}
+#r-idle .idle-ico{font-size:40px;opacity:.12;margin-bottom:8px}
+#r-idle p{font-size:13px;color:#4a3870}
+#r-ready{width:100%}
+.big-arrow{
+  font-size:80px;line-height:1;
+  filter:drop-shadow(0 0 22px rgba(255,215,0,.85));
+}
+.big-dir{
+  font-size:38px;font-weight:700;letter-spacing:3px;
+  color:#ffd700;margin:6px 0;
+}
+.result-score-txt{font-size:11px;color:#5a4890;margin-bottom:10px}
+.result-tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+
+/* ── Score bars ── */
+.score-bar-row{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:8px;font-size:12px;
+}
+.score-bar-label{width:88px;color:#6a5898}
+.score-bar-label.win{color:#00cc66;font-weight:700}
+.score-bar-label.up{color:#ff5577}
+.score-bar-track{flex:1;height:5px;background:#1a1035;border-radius:3px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.score-bar-val{width:60px;text-align:right;color:#5a4890}
+.score-bar-val.win{color:#00cc66;font-weight:700}
+
+/* ── Ladder ── */
+.ladder-row{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:7px;font-size:12px;
+}
+.ldr-pos{color:#4a3870;width:50px;flex-shrink:0}
+.ldr-emo{font-size:18px;width:24px}
+.ldr-lv{color:#5a4888;width:32px;flex-shrink:0}
+.ldr-track{flex:1;height:4px;background:#1a1035;border-radius:2px;overflow:hidden}
+.ldr-fill{height:100%;border-radius:2px;transition:width .35s}
+.ldr-status{width:78px;text-align:right;flex-shrink:0}
+
+/* ── History ── */
+.hist-chips{
+  display:flex;flex-wrap:wrap;gap:5px;
+  max-height:56px;overflow-y:auto;
+}
+
+/* ── Warning banner ── */
+.warn-banner{
+  background:#1c1200;border:1.5px solid rgba(255,170,0,.3);
+  border-radius:8px;padding:12px 16px;margin-bottom:16px;
+  font-size:12px;color:#ffaa00;
+}
+
+/* ── Approval warning ── */
+#approval-warn{display:none}
+
+/* ── Picker overlay ── */
+#picker-ov{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.87);z-index:999;
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+#picker-ov.open{display:flex}
+.picker-box{
+  background:#13102a;border:1.5px solid #4a2e90;
+  border-radius:14px;padding:22px;
+  width:min(320px,90vw);
+  animation:boxIn .18s ease;
+}
+@keyframes boxIn{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+.picker-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.picker-top h3{
+  font-size:15px;font-weight:700;letter-spacing:2px;
+  color:#ffd700;text-transform:uppercase;
+}
+.picker-close{
+  background:none;border:none;color:#5a4890;
+  font-size:22px;cursor:pointer;line-height:1;
+}
+.picker-close:hover{color:#ff5577}
+.picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.popt{
+  aspect-ratio:1;border-radius:9px;border:2px solid;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  cursor:pointer;transition:all .12s;font-size:20px;
+}
+.popt:hover{transform:scale(1.1);filter:brightness(1.4)}
+.popt:active{transform:scale(.92)}
+
+/* ── Victory overlay ── */
+#victory-ov{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.93);z-index:1000;
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:16px;
+}
+#victory-ov.open{display:flex}
+.victory-dragons{font-size:58px;letter-spacing:8px}
+.victory-title{
+  font-size:clamp(26px,6vw,46px);font-weight:700;
+  color:#ffd700;letter-spacing:4px;text-align:center;
+  text-shadow:0 0 32px rgba(255,215,0,.9);
+}
+
+/* ── Toast ── */
+#toasts{
+  position:fixed;top:14px;right:14px;z-index:9999;
+  display:flex;flex-direction:column;gap:7px;pointer-events:none;
+}
+.toast{
+  padding:11px 16px;border-radius:8px;font-size:13px;
+  font-weight:500;max-width:340px;pointer-events:auto;
+  display:flex;align-items:center;gap:8px;
+  animation:tIn .28s ease;
+}
+@keyframes tIn{from{opacity:0;transform:translateX(44px)}to{opacity:1;transform:translateX(0)}}
+.t-ok  {background:#0d1e14;border:1.5px solid rgba(0,200,100,.35);color:#00cc66}
+.t-err {background:#1a090e;border:1.5px solid rgba(220,50,80,.35);color:#ff5577}
+.t-warn{background:#1a1100;border:1.5px solid rgba(255,170,0,.35);color:#ffaa00}
+.t-info{background:#0a0d1c;border:1.5px solid rgba(60,120,240,.35);color:#6699ff}
+
+/* ── Spinner ── */
+.spin{
+  display:inline-block;width:14px;height:14px;
+  border:2px solid rgba(255,215,0,.3);border-top-color:#ffd700;
+  border-radius:50%;animation:spinning .6s linear infinite;
+  flex-shrink:0;
+}
+@keyframes spinning{to{transform:rotate(360deg)}}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#0b0918}
+::-webkit-scrollbar-thumb{background:#3a2e6a;border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<!-- ══════════════════════════════════════
+     AUTH PAGE
+══════════════════════════════════════ -->
+<div id="pg-auth" class="pg active">
+  <div id="pg-auth-inner" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div class="auth-box">
+
+      <div class="auth-logo">
+        <span class="emoji">🐉</span>
+        <h1>Animal Merge Solver</h1>
+        <p>Triple Dragon Goal · SaaS</p>
+      </div>
+
+      <!-- Server status indicator -->
+      <div id="server-status">⚠ Cannot reach server — make sure you ran <strong>npm start</strong></div>
+
+      <!-- Tab buttons -->
+      <div class="tab-bar">
+        <button class="tab on" id="tab-login" onclick="switchTab('login')">Login</button>
+        <button class="tab" id="tab-reg"   onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="form-login">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="l-user" placeholder="Enter your username" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="l-pass" placeholder="Enter your password" autocomplete="current-password">
+        </div>
+        <button class="btn btn-gold btn-full" id="login-btn" onclick="doLogin()">
+          Login →
+        </button>
+        <div id="login-msg" class="msg"></div>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="form-reg" style="display:none">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="r-user" placeholder="Letters, numbers, underscores" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="r-pass" placeholder="Minimum 6 characters" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <input type="password" id="r-pass2" placeholder="Repeat password" autocomplete="new-password">
+        </div>
+        <button class="btn btn-gold btn-full" id="reg-btn" onclick="doRegister()">
+          Create Account
+        </button>
+        <div id="reg-msg" class="msg"></div>
+        <p style="font-size:11px;color:#4a3870;text-align:center;margin-top:10px">
+          ⚠ Admin must approve your account before you can use the solver
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ADMIN PAGE
+══════════════════════════════════════ -->
+<div id="pg-admin" class="pg">
+  <div class="navbar">
+    <div class="nav-brand"><span>🐉</span> Admin Panel</div>
+    <div class="nav-right">
+      <span id="adm-name" style="font-size:12px;color:#5a4890"></span>
+      <span class="badge badge-purple">ADMIN</span>
+      <button class="btn btn-red btn-sm" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="admin-body">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="s-total" style="color:#fff">—</div>
+        <div class="stat-lbl">Total Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="s-approved" style="color:#00cc66">—</div>
+        <div class="stat-lbl">Approved</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="s-pending" style="color:#ffaa00">—</div>
+        <div class="stat-lbl">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="s-solves" style="color:#6699ff">—</div>
+        <div class="stat-lbl">Total Solves</div>
+      </div>
+    </div>
+
+    <!-- Users table -->
+    <div class="card">
+      <div class="card-title">
+        User Management
+        <button class="btn btn-ghost btn-sm" onclick="loadAdmin()">↻ Refresh</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Status</th>
+              <th>Device</th>
+              <th style="text-align:center">Solves</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adm-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:#4a3870">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SOLVER PAGE
+══════════════════════════════════════ -->
+<div id="pg-solver" class="pg">
+  <div class="navbar">
+    <div class="nav-brand"><span>🐉</span> Triple Dragon</div>
+    <div class="nav-right" style="gap:6px">
+      <span id="nav-dragons" style="font-size:20px;letter-spacing:2px">🔲🔲🔲</span>
+      <span id="nav-dcount" style="font-size:12px;color:#5a4890">0/3</span>
+      <span id="slv-name" style="font-size:12px;color:#5a4890"></span>
+      <span id="slv-count" class="badge badge-gold">0 solves</span>
+      <button class="btn btn-red btn-sm" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="solver-body">
+
+    <div id="approval-warn" class="warn-banner">
+      ⏳ Your account is waiting for admin approval. The solver will be available once approved.
+    </div>
+
+    <div class="solver-grid">
+
+      <!-- LEFT -->
+      <div class="left-col">
+
+        <!-- Board -->
+        <div class="card">
+          <div class="card-title">Board — Click any cell to set its level</div>
+          <div id="board"></div>
+        </div>
+
+        <!-- Moves -->
+        <div class="moves-row">
+          <span class="moves-lbl">Moves Left</span>
+          <button class="num-btn" onclick="addMoves(-1)">−</button>
+          <input id="moves-input" type="number" value="200" min="0" max="999" onchange="setMovesVal(+this.value)">
+          <button class="num-btn" onclick="addMoves(1)">+</button>
+          <div class="moves-num" id="moves-num">200</div>
+        </div>
+        <div class="moves-bar-track">
+          <div class="moves-bar-fill" id="moves-bar" style="width:100%"></div>
+        </div>
+
+        <!-- D-pad -->
+        <div class="card">
+          <div class="card-title">Move Controls &nbsp; <span style="font-weight:400;color:#3a2e6a">(Arrow keys also work)</span></div>
+          <div class="dpad">
+            <div></div>
+            <button class="dpad-btn" id="dp-up"    onclick="manualMove('up')">⬆</button>
+            <div></div>
+            <button class="dpad-btn" id="dp-left"  onclick="manualMove('left')">⬅</button>
+            <div class="dpad-center">MOVE<br>PAD</div>
+            <button class="dpad-btn" id="dp-right" onclick="manualMove('right')">➡</button>
+            <div></div>
+            <button class="dpad-btn" id="dp-down"  onclick="manualMove('down')">⬇</button>
+            <div></div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-col">
+          <button class="btn btn-gold btn-full" id="solve-btn" onclick="doSolve()" style="font-size:15px;padding:14px">
+            ▶ Get Best Move
+          </button>
+          <button class="btn btn-green btn-full" id="apply-btn" onclick="applyBest()" disabled>
+            ✓ Apply Best Move to Board
+          </button>
+          <div class="btn-row-3">
+            <button class="btn btn-ghost" id="undo-btn" onclick="doUndo()" disabled>↩ Undo</button>
+            <button class="btn btn-blue"  onclick="loadDemo()">📋 Demo</button>
+            <button class="btn btn-red"   onclick="doReset()">↺ Reset</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT -->
+      <div class="right-col">
+
+        <!-- Best move card -->
+        <div class="result-card">
+          <div class="result-card-title">Best Move Recommendation</div>
+          <div id="r-idle">
+            <div class="idle-ico">◈</div>
+            <p>Set the board, then press Get Best Move</p>
+          </div>
+          <div id="r-ready" style="display:none">
+            <div class="big-arrow" id="r-arrow"></div>
+            <div class="big-dir" id="r-dir"></div>
+            <div class="result-score-txt" id="r-score"></div>
+            <div class="result-tags" id="r-tags"></div>
+          </div>
+        </div>
+
+        <!-- Score bars -->
+        <div class="card" id="scores-card" style="display:none">
+          <div class="card-title">All Directions Scored</div>
+          <div id="scores-body"></div>
+        </div>
+
+        <!-- Ladder status -->
+        <div class="card">
+          <div class="card-title">Ladder Status &nbsp; <span style="font-weight:400;color:#3a2e6a">Target: 10·10·10·9·8·7·6·5</span></div>
+          <div id="ladder"></div>
+        </div>
+
+        <!-- History -->
+        <div class="card">
+          <div class="card-title">
+            Move History
+            <button onclick="clearHist()" style="background:none;border:none;color:#4a3070;font-size:11px;cursor:pointer;text-transform:uppercase;letter-spacing:1px">Clear</button>
+          </div>
+          <div class="hist-chips" id="hist-chips">
+            <span style="font-size:12px;color:#3a2860">no moves yet</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Picker -->
+<div id="picker-ov" onclick="pickerOvClick(event)">
+  <div class="picker-box">
+    <div class="picker-top">
+      <h3>Set Level</h3>
+      <button class="picker-close" onclick="closePicker()">✕</button>
+    </div>
+    <div class="picker-grid" id="picker-grid"></div>
+  </div>
+</div>
+
+<!-- Victory -->
+<div id="victory-ov">
+  <div class="victory-dragons">🐉🐉🐉</div>
+  <div class="victory-title">Triple Dragon!</div>
+  <p style="color:#9080b8;letter-spacing:2px;font-size:13px">Three Level-10 Tiles Achieved</p>
+  <button class="btn btn-gold" style="padding:13px 36px;font-size:15px;margin-top:8px" onclick="closeVictory()">
+    ✓ Continue
+  </button>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   ANIMALS & CONSTANTS
+══════════════════════════════════════════════════════════ */
+var AN = ['','🐣','🐥','🐰','🐱','🐶','🦊','🐼','🐨','🦁','🐉'];
+var AR = {up:'⬆',down:'⬇',left:'⬅',right:'➡'};
+var DIRS = ['up','down','left','right'];
+var LADDER = [10,10,10,9,8,7,6,5];
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+var TOKEN   = localStorage.getItem('ams4_token') || null;
+var ME      = null;
+var GRID    = eg();
+var MOVES   = 200;
+var MV_CNT  = 0;
+var BEST    = null;
+var UNDO    = [];
+var HIST    = [];
+var POPS    = [];
+var PICK    = null;
+var WIN     = false;
+var FP      = null;
+
+function eg(){ return [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; }
+
+/* ══════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════ */
+function G(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function showPage(p){
+  ['auth','admin','solver'].forEach(function(n){
+    G('pg-'+n).classList.toggle('active', n===p);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════════ */
+function toast(msg, type){
+  type = type||'info';
+  var icons = {ok:'✓',err:'✕',warn:'⚠',info:'ℹ'};
+  var el = document.createElement('div');
+  el.className = 'toast t-'+type;
+  el.innerHTML = '<span>'+icons[type]+'</span><span>'+esc(msg)+'</span>';
+  G('toasts').appendChild(el);
+  setTimeout(function(){
+    el.style.opacity='0'; el.style.transform='translateX(44px)';
+    el.style.transition='all .3s';
+    setTimeout(function(){ el.remove(); }, 320);
+  }, 3800);
+}
+
+/* ══════════════════════════════════════════════════════════
+   DEVICE FINGERPRINT
+══════════════════════════════════════════════════════════ */
+async function getFP(){
+  if(FP) return FP;
+  var parts = [
+    navigator.userAgent||'',
+    navigator.language||'',
+    screen.width+'x'+screen.height+'x'+screen.colorDepth,
+    new Date().getTimezoneOffset()+'',
+    (navigator.hardwareConcurrency||4)+'',
+    navigator.platform||'',
+  ];
+  try{
+    var c=document.createElement('canvas');
+    var x=c.getContext('2d');
+    x.font='13px sans-serif';
+    x.fillText('AnimalMerge2024',2,14);
+    parts.push(c.toDataURL().slice(-30));
+  }catch(e){}
+  var raw = parts.join('|');
+  try{
+    var buf  = new TextEncoder().encode(raw);
+    var hash = await crypto.subtle.digest('SHA-256',buf);
+    FP = Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  }catch(e){
+    var h=5381;
+    for(var i=0;i<raw.length;i++){h=((h<<5)+h)^raw.charCodeAt(i);h|=0;}
+    FP=Math.abs(h).toString(16).padStart(8,'0').repeat(8).slice(0,64);
+  }
+  return FP;
+}
+
+/* ══════════════════════════════════════════════════════════
+   API — every call goes through here
+══════════════════════════════════════════════════════════ */
+async function api(method, url, body, withFP){
+  var headers = {'Content-Type':'application/json'};
+  if(TOKEN) headers['Authorization']='Bearer '+TOKEN;
+  if(withFP) headers['X-Device-Fingerprint'] = await getFP();
+
+  var opts = {method:method, headers:headers};
+  if(body) opts.body = JSON.stringify(body);
+
+  var res, data;
+  try{
+    res = await fetch(url, opts);
+  }catch(e){
+    throw new Error('Cannot connect to server — is "npm start" running?');
+  }
+  try{
+    data = await res.json();
+  }catch(e){
+    throw new Error('Server returned bad response (HTTP '+res.status+')');
+  }
+  if(!res.ok) throw new Error(data.error || 'Error '+res.status);
+  return data;
+}
+
+/* ══════════════════════════════════════════════════════════
+   AUTH — TAB SWITCH
+══════════════════════════════════════════════════════════ */
+function switchTab(t){
+  G('form-login').style.display = t==='login'    ? 'block' : 'none';
+  G('form-reg').style.display   = t==='register' ? 'block' : 'none';
+  G('tab-login').className      = 'tab'+(t==='login'   ?' on':'');
+  G('tab-reg').className        = 'tab'+(t==='register'?' on':'');
+  G('login-msg').textContent    = '';
+  G('reg-msg').textContent      = '';
+  G('reg-msg').className        = 'msg';
+}
+
+/* ══════════════════════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════════════════════ */
+async function doLogin(){
+  var u = G('l-user').value.trim();
+  var p = G('l-pass').value;
+  var msg = G('login-msg');
+
+  msg.className = 'msg err';
+  msg.textContent = '';
+
+  if(!u){ msg.textContent='Please enter your username.'; return; }
+  if(!p){ msg.textContent='Please enter your password.'; return; }
+
+  var btn = G('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Logging in...';
+
+  try{
+    var data = await api('POST','/api/auth/login',{username:u, password:p});
+    TOKEN = data.token;
+    ME    = data.user;
+    localStorage.setItem('ams4_token', TOKEN);
+    G('server-status').style.display = 'none';
+    toast('Welcome, '+ME.username+'!','ok');
+    bootApp();
+  }catch(e){
+    msg.textContent = e.message;
+    if(e.message.indexOf('connect')>-1){
+      G('server-status').style.display='block';
+      G('server-status').className='';
+    }
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = 'Login →';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   REGISTER
+══════════════════════════════════════════════════════════ */
+async function doRegister(){
+  var u  = G('r-user').value.trim();
+  var p  = G('r-pass').value;
+  var p2 = G('r-pass2').value;
+  var msg = G('reg-msg');
+
+  msg.className = 'msg err';
+  msg.textContent = '';
+
+  if(!u)        { msg.textContent='Username is required.'; return; }
+  if(u.length<3){ msg.textContent='Username must be at least 3 characters.'; return; }
+  if(!p)        { msg.textContent='Password is required.'; return; }
+  if(p.length<6){ msg.textContent='Password must be at least 6 characters.'; return; }
+  if(p!==p2)    { msg.textContent='Passwords do not match.'; return; }
+
+  var btn = G('reg-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Creating account...';
+
+  try{
+    var data = await api('POST','/api/auth/register',{username:u, password:p});
+    msg.className = 'msg ok';
+    msg.textContent = '✓ '+(data.message||'Account created! Waiting for admin approval.');
+    G('r-user').value=''; G('r-pass').value=''; G('r-pass2').value='';
+    G('server-status').style.display='none';
+    setTimeout(function(){
+      switchTab('login');
+      G('l-user').value = u;
+    }, 2500);
+  }catch(e){
+    msg.textContent = e.message;
+    if(e.message.indexOf('connect')>-1){
+      G('server-status').style.display='block';
+    }
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = 'Create Account';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   LOGOUT
+══════════════════════════════════════════════════════════ */
+function doLogout(){
+  TOKEN=null; ME=null;
+  localStorage.removeItem('ams4_token');
+  GRID=eg(); MOVES=200; MV_CNT=0; BEST=null;
+  UNDO=[]; HIST=[]; POPS=[]; WIN=false;
+  showPage('auth');
+  toast('Logged out','info');
+}
+
+/* ══════════════════════════════════════════════════════════
+   BOOT AFTER LOGIN
+══════════════════════════════════════════════════════════ */
+function bootApp(){
+  if(ME.is_admin){
+    G('adm-name').textContent = ME.username;
+    showPage('admin');
+    loadAdmin();
+  }else{
+    G('slv-name').textContent = ME.username;
+    G('slv-count').textContent = (ME.solve_count||0)+' solves';
+    if(!ME.is_approved){
+      G('approval-warn').style.display='block';
+      G('solve-btn').disabled=true;
+    }else{
+      G('approval-warn').style.display='none';
+      G('solve-btn').disabled=false;
+    }
+    showPage('solver');
+    renderBoard();
+    renderLadder();
+  }
+  getFP();
+}
+
+/* ══════════════════════════════════════════════════════════
+   BOARD
+══════════════════════════════════════════════════════════ */
+function renderBoard(){
+  var el=G('board'); if(!el)return;
+  el.innerHTML='';
+  var pops=POPS; POPS=[];
+
+  for(var r=0;r<4;r++){
+    for(var c=0;c<4;c++){
+      var v=GRID[r][c];
+      var cell=document.createElement('div');
+      cell.className='cell lv'+v+(pops.indexOf(r*4+c)>-1?' merged':'');
+      if(v){
+        cell.innerHTML='<span class="cell-emo">'+AN[v]+'</span><span class="cell-lv">Lv'+v+'</span>';
+      }else{
+        cell.innerHTML='<span style="font-size:13px;opacity:.1">·</span>';
+      }
+      (function(rr,cc){ cell.addEventListener('click',function(){ openPicker(rr,cc); }); })(r,c);
+      el.appendChild(cell);
+    }
+  }
+
+  /* moves display */
+  G('moves-num').textContent = MOVES;
+  G('moves-num').style.color = MOVES<=10?'#ff5577':MOVES<=30?'#ffaa00':'#ffd700';
+  G('moves-input').value = MOVES;
+  G('moves-bar').style.width = Math.max(0,Math.min(100,(MOVES/200)*100))+'%';
+
+  /* nav dragons */
+  var n10=cntLv10();
+  G('nav-dragons').textContent=(n10>=1?'🐉':'🔲')+(n10>=2?'🐉':'🔲')+(n10>=3?'🐉':'🔲');
+  G('nav-dcount').textContent=n10+'/3';
+
+  updateDpad();
+  renderLadder();
+
+  if(n10>=3&&!WIN){
+    WIN=true;
+    setTimeout(function(){ G('victory-ov').classList.add('open'); },700);
+  }
+}
+
+function cntLv10(){
+  var n=0;
+  for(var r=0;r<4;r++)for(var c=0;c<4;c++)if(GRID[r][c]===10)n++;
+  return n;
+}
+
+function renderLadder(){
+  var el=G('ladder'); if(!el)return;
+  var vals=[];
+  for(var r=0;r<4;r++)for(var c=0;c<4;c++)if(GRID[r][c])vals.push(GRID[r][c]);
+  vals.sort(function(a,b){return b-a;});
+  var html='';
+  for(var i=0;i<8;i++){
+    var ideal=LADDER[i], actual=vals[i]||0;
+    var diff=actual-ideal;
+    var col=diff===0?'#ffd700':Math.abs(diff)<=1?'#ffaa00':diff>0?'#00cc66':'#ff5577';
+    var status=diff===0?'✓ Perfect':Math.abs(diff)<=1?'~ Close':diff>0?'↑ Over':'↓ Build';
+    html+='<div class="ladder-row">'+
+      '<span class="ldr-pos">#'+(i+1)+' →'+ideal+'</span>'+
+      '<span class="ldr-emo">'+(actual?AN[actual]:'·')+'</span>'+
+      '<span class="ldr-lv">'+(actual?'Lv'+actual:'—')+'</span>'+
+      '<div class="ldr-track"><div class="ldr-fill" style="width:'+(actual?actual*10:0)+'%;background:'+col+'"></div></div>'+
+      '<span class="ldr-status" style="color:'+col+'">'+status+'</span>'+
+    '</div>';
+  }
+  el.innerHTML=html;
+}
+
+function updateDpad(){
+  DIRS.forEach(function(d){
+    var btn=G('dp-'+d); if(!btn)return;
+    var res=simMove(GRID,d);
+    btn.className='dpad-btn';
+    if(d===BEST)    btn.classList.add('best');
+    else if(!res.moved) btn.classList.add('dead');
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   PICKER
+══════════════════════════════════════════════════════════ */
+function openPicker(r,c){
+  PICK={r:r,c:c};
+  var pg=G('picker-grid'); pg.innerHTML='';
+  var eb=document.createElement('div');
+  eb.className='popt lv0';
+  eb.innerHTML='<span style="color:#ff5577;font-size:18px">✕</span><span style="font-size:8px;color:#ff5577;margin-top:2px">Empty</span>';
+  eb.addEventListener('click',function(){ setPick(0); });
+  pg.appendChild(eb);
+  for(var v=1;v<=10;v++){
+    (function(lv){
+      var ob=document.createElement('div');
+      ob.className='popt lv'+lv;
+      ob.innerHTML='<span class="cell-emo">'+AN[lv]+'</span><span style="font-size:8px;opacity:.5;margin-top:2px">Lv'+lv+'</span>';
+      ob.addEventListener('click',function(){ setPick(lv); });
+      pg.appendChild(ob);
+    })(v);
+  }
+  G('picker-ov').classList.add('open');
+}
+function setPick(v){
+  if(PICK) GRID[PICK.r][PICK.c]=v;
+  closePicker(); BEST=null; clearResult(); renderBoard();
+}
+function closePicker(){ G('picker-ov').classList.remove('open'); PICK=null; }
+function pickerOvClick(e){ if(e.target===G('picker-ov')) closePicker(); }
+
+/* ══════════════════════════════════════════════════════════
+   CLIENT MOVE LOGIC
+══════════════════════════════════════════════════════════ */
+function cg(g){ return g.map(function(r){return r.slice();}); }
+
+function slideRow(row){
+  var a=row.filter(function(x){return x>0;}),out=[],i;
+  for(i=0;i<a.length;i++){
+    if(i+1<a.length&&a[i]===a[i+1]){out.push(Math.min(a[i]+1,10));i++;}
+    else out.push(a[i]);
+  }
+  while(out.length<4)out.push(0);
+  return out;
+}
+
+function simMove(g,dir){
+  var ng=cg(g),moved=false,r,c,col,n;
+  if(dir==='left'){
+    for(r=0;r<4;r++){n=slideRow(ng[r]);if(n.join()!==ng[r].join())moved=true;ng[r]=n;}
+  }else if(dir==='right'){
+    for(r=0;r<4;r++){n=slideRow(ng[r].slice().reverse()).reverse();if(n.join()!==ng[r].join())moved=true;ng[r]=n;}
+  }else if(dir==='up'){
+    for(c=0;c<4;c++){col=[ng[0][c],ng[1][c],ng[2][c],ng[3][c]];n=slideRow(col);if(n.join()!==col.join())moved=true;for(r=0;r<4;r++)ng[r][c]=n[r];}
+  }else{
+    for(c=0;c<4;c++){col=[ng[0][c],ng[1][c],ng[2][c],ng[3][c]];n=slideRow(col.slice().reverse()).reverse();if(n.join()!==col.join())moved=true;for(r=0;r<4;r++)ng[r][c]=n[r];}
+  }
+  return{g:ng,moved:moved};
+}
+
+function execMove(dir,src){
+  if(MOVES<=0){toast('No moves left!','warn');return false;}
+  var res=simMove(GRID,dir);
+  if(!res.moved){toast("Can't move "+dir,'warn');return false;}
+  for(var r=0;r<4;r++)for(var c=0;c<4;c++)
+    if(res.g[r][c]>GRID[r][c]&&GRID[r][c]>0) POPS.push(r*4+c);
+  UNDO.push({grid:cg(GRID),moves:MOVES,mc:MV_CNT});
+  G('undo-btn').disabled=false;
+  GRID=res.g; MOVES--; MV_CNT++;
+  addHist(dir,src); BEST=null; clearResult(); renderBoard();
+  var m=POPS.length;
+  if(m>0) toast(dir.toUpperCase()+' · '+m+' merge'+(m>1?'s':'')+'!','ok');
+  return true;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SOLVER
+══════════════════════════════════════════════════════════ */
+async function doSolve(){
+  if(!ME||!ME.is_approved){toast('Account not approved yet','err');return;}
+  if(MOVES<=0){toast('No moves left!','warn');return;}
+
+  var btn=G('solve-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span> Computing...';
+
+  try{
+    var fp=await getFP();
+    var data=await api('POST','/api/solve',{grid:GRID,moveCount:MV_CNT,fingerprint:fp},true);
+
+    if(!data.bestMove){
+      toast('No valid moves available','warn');
+      clearResult(); return;
+    }
+
+    BEST=data.bestMove;
+    ME.solve_count=(ME.solve_count||0)+1;
+    G('slv-count').textContent=ME.solve_count+' solves';
+
+    G('r-idle').style.display='none';
+    G('r-ready').style.display='block';
+    G('r-arrow').textContent=AR[BEST];
+    G('r-dir').textContent=BEST.toUpperCase();
+    G('r-score').textContent='Score: '+(data.scores[BEST]||0).toFixed(0)+
+      ' · Depth: '+(data.reachedDepth||'?')+
+      ' · '+(data.elapsed||'?')+'ms';
+
+    var tEl=G('r-tags'); tEl.innerHTML='';
+    var n10=cntLv10();
+    if(n10>0) tEl.innerHTML+='<span class="badge badge-gold">'+n10+'/3 🐉</span>';
+    if(BEST==='up') tEl.innerHTML+='<span class="badge badge-red">⚠ Up Move</span>';
+    tEl.innerHTML+='<span class="badge badge-blue">depth '+(data.reachedDepth||'?')+'</span>';
+    tEl.innerHTML+='<span class="badge badge-gray">'+MOVES+' moves left</span>';
+
+    G('scores-card').style.display='block';
+    renderScores(data.scores,BEST);
+    G('apply-btn').disabled=false;
+    updateDpad();
+    toast('Best: '+BEST.toUpperCase(),'ok');
+
+  }catch(e){
+    toast(e.message,'err');
+    clearResult();
+  }finally{
+    btn.disabled=!ME||!ME.is_approved;
+    btn.innerHTML='▶ Get Best Move';
+  }
+}
+
+function renderScores(scores,best){
+  var el=G('scores-body'); el.innerHTML='';
+  var valid=DIRS.filter(function(d){return scores[d]!==null;});
+  if(!valid.length)return;
+  var maxS=Math.max.apply(null,valid.map(function(d){return scores[d];}));
+  var minS=Math.min.apply(null,valid.map(function(d){return scores[d];}));
+  var rng=maxS-minS||1;
+  DIRS.forEach(function(d){
+    var noMove=scores[d]===null;
+    var isWin=d===best;
+    var isUp=d==='up';
+    var pct=noMove?0:Math.max(4,((scores[d]-minS)/rng)*100);
+    var col=isWin?'#00cc66':isUp?'#ff5577':'#3a2e6a';
+    el.innerHTML+='<div class="score-bar-row">'+
+      '<span class="score-bar-label'+(isWin?' win':isUp?' up':'')+'">'+AR[d]+' '+d.toUpperCase()+(isUp&&!noMove?' ⚠':'')+(noMove?' ✕':'')+'</span>'+
+      '<div class="score-bar-track"><div class="score-bar-fill" style="width:'+(noMove?0:pct)+'%;background:'+col+'"></div></div>'+
+      '<span class="score-bar-val'+(isWin?' win':'')+'">'+  (noMove?'—':(scores[d]).toFixed(0))+'</span>'+
+    '</div>';
+  });
+}
+
+function clearResult(){
+  G('r-idle').style.display='block';
+  G('r-ready').style.display='none';
+  G('scores-card').style.display='none';
+  G('apply-btn').disabled=true;
+  BEST=null; updateDpad();
+}
+
+/* ══════════════════════════════════════════════════════════
+   ACTIONS
+══════════════════════════════════════════════════════════ */
+function applyBest(){ if(BEST) execMove(BEST,'ai'); }
+function manualMove(dir){ execMove(dir,'manual'); }
+
+function doUndo(){
+  if(!UNDO.length)return;
+  var s=UNDO.pop();
+  GRID=s.grid; MOVES=s.moves; MV_CNT=s.mc;
+  G('undo-btn').disabled=UNDO.length===0;
+  HIST.pop(); BEST=null; clearResult();
+  renderBoard(); renderHist();
+  toast('Undone','info');
+}
+
+function doReset(){
+  GRID=eg(); MOVES=200; MV_CNT=0; BEST=null;
+  UNDO=[]; HIST=[]; POPS=[]; WIN=false;
+  G('undo-btn').disabled=true;
+  G('moves-input').value=200;
+  clearResult(); renderBoard(); renderHist();
+  toast('Board reset','info');
+}
+
+function loadDemo(){
+  GRID=[[6,5,4,3],[7,6,5,2],[8,7,6,1],[9,9,8,0]];
+  MOVES=200; MV_CNT=0; UNDO=[]; WIN=false;
+  G('undo-btn').disabled=true;
+  clearResult(); renderBoard(); renderHist();
+  toast('Demo loaded — two Lv9 pairs ready! Press Get Best Move','ok');
+}
+
+function addMoves(d){ setMovesVal(MOVES+d); }
+function setMovesVal(v){ MOVES=Math.max(0,Math.min(999,Math.round(+v||0))); renderBoard(); }
+function closeVictory(){ G('victory-ov').classList.remove('open'); }
+
+/* ══════════════════════════════════════════════════════════
+   HISTORY
+══════════════════════════════════════════════════════════ */
+function addHist(dir,src){
+  HIST.push({dir:dir,src:src});
+  if(HIST.length>64)HIST.shift();
+  renderHist();
+}
+function renderHist(){
+  var el=G('hist-chips'); if(!el)return;
+  if(!HIST.length){el.innerHTML='<span style="font-size:12px;color:#3a2860">no moves yet</span>';return;}
+  el.innerHTML=HIST.map(function(m,i){
+    return '<span class="badge '+(m.src==='ai'?'badge-green':'badge-blue')+'" title="#'+(i+1)+' '+m.src+'">'+AR[m.dir]+'</span>';
+  }).join('');
+  el.scrollLeft=99999;
+}
+function clearHist(){ HIST=[];UNDO=[];G('undo-btn').disabled=true;renderHist(); }
+
+/* ══════════════════════════════════════════════════════════
+   ADMIN
+══════════════════════════════════════════════════════════ */
+async function loadAdmin(){
+  try{
+    var res=await Promise.all([api('GET','/api/admin/users'),api('GET','/api/admin/stats')]);
+    var users=res[0].users||[], stats=res[1];
+    G('s-total').textContent=stats.total||0;
+    G('s-approved').textContent=stats.approved||0;
+    G('s-pending').textContent=stats.pending||0;
+    G('s-solves').textContent=stats.solves||0;
+
+    var tb=G('adm-tbody'); tb.innerHTML='';
+    if(!users.length){
+      tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:#4a3070">No users yet</td></tr>';
+      return;
+    }
+    users.forEach(function(u){
+      var tr=document.createElement('tr');
+      var fp=u.fingerprint?u.fingerprint.slice(0,14)+'…':'<span style="color:#3a2860">none</span>';
+      var joined=u.created_at?new Date(u.created_at).toLocaleDateString():'—';
+      var stBadge=u.is_approved
+        ?'<span class="badge badge-green">✓ Approved</span>'
+        :'<span class="badge badge-red">⏳ Pending</span>';
+      tr.innerHTML=
+        '<td><strong>'+esc(u.username)+'</strong><br><span style="font-size:10px;color:#4a3070">#'+u.id+'</span></td>'+
+        '<td>'+stBadge+'</td>'+
+        '<td style="font-size:11px;color:#4a3070;font-family:monospace">'+fp+'</td>'+
+        '<td style="text-align:center">'+( u.solve_count||0)+'</td>'+
+        '<td style="font-size:12px;color:#4a3070">'+joined+'</td>'+
+        '<td><div class="tbl-actions">'+
+          (u.is_approved
+            ?'<button class="btn btn-red btn-sm" onclick="adm(\'revoke\','+u.id+',\''+esc(u.username)+'\')">✗ Revoke</button>'
+            :'<button class="btn btn-green btn-sm" onclick="adm(\'approve\','+u.id+',\''+esc(u.username)+'\')">✓ Approve</button>'
+          )+
+          '<button class="btn btn-ghost btn-sm" onclick="adm(\'reset\','+u.id+',\''+esc(u.username)+'\')">🔓 Device</button>'+
+          '<button class="btn btn-red btn-sm" onclick="adm(\'delete\','+u.id+',\''+esc(u.username)+'\')">🗑 Delete</button>'+
+        '</div></td>';
+      tb.appendChild(tr);
+    });
+  }catch(e){ toast(e.message,'err'); }
+}
+
+async function adm(action,id,name){
+  if(action==='delete'&&!confirm('Delete "'+name+'"?')) return;
+  try{
+    var data;
+    if(action==='approve') data=await api('PUT','/api/admin/users/'+id+'/approve',{approve:true});
+    else if(action==='revoke')  data=await api('PUT','/api/admin/users/'+id+'/approve',{approve:false});
+    else if(action==='reset')   data=await api('PUT','/api/admin/users/'+id+'/reset-device');
+    else if(action==='delete')  data=await api('DELETE','/api/admin/users/'+id);
+    toast(data.message||'Done','ok');
+    loadAdmin();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   KEYBOARD
+══════════════════════════════════════════════════════════ */
+document.addEventListener('keydown',function(e){
+  var tag=e.target.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA')return;
+  if(G('pg-solver').classList.contains('active')){
+    var map={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+    if(map[e.key]){e.preventDefault();manualMove(map[e.key]);return;}
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();doSolve();}
+  }
+  if(G('pg-auth').classList.contains('active')&&e.key==='Enter'){
+    if(G('form-login').style.display!=='none') doLogin();
+    else doRegister();
+  }
+});
+
+/* ══════════════════════════════════════════════════════════
+   STARTUP
+══════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded',function(){
+  /* Always clear stale tokens to avoid silent failures */
+  /* Only restore session if token exists */
+  if(TOKEN){
+    api('GET','/api/auth/me').then(function(data){
+      ME={id:data.id,username:data.username,is_approved:data.is_approved,is_admin:data.is_admin,solve_count:data.solve_count};
+      bootApp();
+    }).catch(function(e){
+      /* Token is invalid or server is down — clear it and show login */
+      TOKEN=null;
+      localStorage.removeItem('ams4_token');
+      showPage('auth');
+      if(e.message.indexOf('connect')>-1){
+        G('server-status').style.display='block';
+      }else{
+        toast('Session expired — please log in','warn');
+      }
+    });
+  }else{
+    showPage('auth');
+  }
+  getFP();
+});
+</script>
+</body>
+</html>
