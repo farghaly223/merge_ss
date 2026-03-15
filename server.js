@@ -139,30 +139,47 @@ app.get('*', (_req, res) =>
    START - تشغيل السيرفر والداتابيز
 ════════════════════════════════════════ */
 async function start() {
-  console.log('\n🐉 Animal Merge Solver — Starting...');
-  try {
-    // 1. اختبار الاتصال الأساسي
-    await testConnection();
-    console.log('✅ Database connected');
+  console.log('\n🐉 Starting Server...');
+  try {
+    await testConnection();
+    
+    // الحل القاتل: تنفيذ SQL يدوي لإنشاء الجداول لو مش موجودة
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        is_approved TINYINT(1) DEFAULT 0,
+        is_admin TINYINT(1) DEFAULT 0,
+        fingerprint VARCHAR(255) DEFAULT NULL,
+        solve_count INT DEFAULT 0,
+        last_login DATETIME DEFAULT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+    
+    console.log('✅ Users table is ready (Manually Created)');
 
-    // 2. الجزء السحري: بناء الجداول أوتوماتيكياً (Sync)
-    // ده اللي هيحل مشكلة "Table doesn't exist"
-    await sequelize.sync({ alter: true });
-    console.log("✅ Database tables are synced & ready!");
+    // كود إضافي لإنشاء جدول الـ logs لو محتاجه
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS solve_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        grid_json TEXT,
+        move VARCHAR(10),
+        score INT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-    // 3. تشغيل السماع للطلبات (Listen)
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log('✅ Server running at port: ' + PORT);
-      console.log('🚀 Go to your website and Register now!');
-    });
-
-  } catch (e) {
-    console.error('❌ Database connection FAILED:', e.message);
-    // لو فيه مشكلة في الـ IP Allowance أو الباسورد هيظهر هنا
-    process.exit(1);
-  }
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('🚀 SERVER IS LIVE!');
+    });
+  } catch (e) {
+    console.error('❌ FATAL ERROR:', e.message);
+  }
 }
-
 // تشغيل الفانكشن
 start();
 
