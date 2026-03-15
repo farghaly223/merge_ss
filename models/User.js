@@ -1,79 +1,38 @@
 'use strict';
-const { query } = require('./db');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('./db'); 
 
-const User = {
-  async findByUsername(username) {
-    const rows = await query('SELECT * FROM users WHERE username = ? LIMIT 1', [username]);
-    return rows[0] || null;
-  },
+// تعريف موديل المستخدم
+const User = sequelize.define('User', {
+  username: { type: DataTypes.STRING, allowNull: false, unique: true },
+  password: { type: DataTypes.STRING, allowNull: false },
+  is_approved: { type: DataTypes.BOOLEAN, defaultValue: false },
+  is_admin: { type: DataTypes.BOOLEAN, defaultValue: false },
+  fingerprint: { type: DataTypes.STRING, defaultValue: null },
+  solve_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  last_login: { type: DataTypes.DATE, defaultValue: null }
+}, {
+  tableName: 'users', // نحدد اسم الجدول بالظبط
+  timestamps: true    // بيكريت createdAt و updatedAt لوحده
+});
 
-  async findById(id) {
-    const rows = await query('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
-    return rows[0] || null;
-  },
+// تعريف موديل السجلات
+const SolveLog = sequelize.define('SolveLog', {
+  grid_json: { type: DataTypes.TEXT },
+  move: { type: DataTypes.STRING(10) },
+  score: { type: DataTypes.INTEGER, defaultValue: 0 }
+}, {
+  tableName: 'solve_logs'
+});
 
-  async create(username, hashedPassword) {
-    const result = await query(
-      'INSERT INTO users (username, password) VALUES (?, ?)',
-      [username, hashedPassword]
-    );
-    return result.insertId;
-  },
+// العلاقات
+User.hasMany(SolveLog, { foreignKey: 'user_id' });
+SolveLog.belongsTo(User, { foreignKey: 'user_id' });
 
-  async updateFingerprint(id, fingerprint) {
-    await query('UPDATE users SET fingerprint = ? WHERE id = ?', [fingerprint, id]);
-  },
-
-  async updateLastLogin(id) {
-    await query('UPDATE users SET last_login = NOW() WHERE id = ?', [id]);
-  },
-
-  async incrementSolveCount(id) {
-    await query('UPDATE users SET solve_count = solve_count + 1 WHERE id = ?', [id]);
-  },
-
-  async setApproved(id, approved) {
-    await query('UPDATE users SET is_approved = ? WHERE id = ?', [approved ? 1 : 0, id]);
-  },
-
-  async resetFingerprint(id) {
-    await query('UPDATE users SET fingerprint = NULL WHERE id = ?', [id]);
-  },
-
-  async deleteById(id) {
-    await query('DELETE FROM users WHERE id = ?', [id]);
-  },
-
-  async listNonAdmins() {
-    return query(
-      'SELECT id, username, is_approved, solve_count, fingerprint, created_at, last_login FROM users WHERE is_admin = 0 ORDER BY created_at DESC'
-    );
-  },
-
-  async countStats() {
-    const rows = await query(`
-      SELECT
-        SUM(is_admin = 0)                        AS total,
-        SUM(is_admin = 0 AND is_approved = 1)    AS approved,
-        SUM(is_admin = 0 AND is_approved = 0)    AS pending
-      FROM users
-    `);
-    return rows[0];
-  },
-};
-
-const SolveLog = {
-  async add(userId, boardState, bestMove, score) {
-    await query(
-      'INSERT INTO solve_logs (user_id, board_state, best_move, score) VALUES (?, ?, ?, ?)',
-      [userId, boardState, bestMove, score || 0]
-    );
-  },
-
-  async count() {
-    const rows = await query('SELECT COUNT(*) AS n FROM solve_logs');
-    return rows[0].n;
-  },
-};
+// دوال مساعدة (Helper Functions) عشان الكود القديم بتاعك ما يضربش
+User.findByUsername = (username) => User.findOne({ where: { username } });
+User.findById = (id) => User.findByPk(id);
+User.createOld = (username, password) => User.create({ username, password }); // سميتها createOld عشان متلخبطش
+User.updateLastLogin = (id) => User.update({ last_login: new Date() }, { where: { id } });
 
 module.exports = { User, SolveLog };
