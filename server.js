@@ -1,17 +1,16 @@
 'use strict';
 require('dotenv').config();
 
-const express   = require('express');
-const cors      = require('cors');
-const rateLimit = require('express-rate-limit');
-const bcrypt    = require('bcryptjs');
-const jwt       = require('jsonwebtoken');
-const path      = require('path');
+const express    = require('express');
+const cors       = require('cors');
+const rateLimit  = require('express-rate-limit');
+const bcrypt     = require('bcryptjs');
+const jwt        = require('jsonwebtoken');
+const path       = require('path');
 
-// استيراد الـ Sequelize instance من ملف الـ models بتاعك
-// تأكد أن ملف models/db.js يحتوي على إعدادات الـ SSL كما اتفقنا
+// استيراد الـ Sequelize instance
 const { sequelize, testConnection } = require('./models/db'); 
-const { User, SolveLog }           = require('./models/User');
+const { User } = require('./models/User');
 const { solveIDDFS, validateGrid } = require('./solver');
 
 const app  = express();
@@ -42,108 +41,80 @@ async function requireAuth(req, res, next) {
   if (!h.startsWith('Bearer '))
     return res.status(401).json({ ok: false, error: 'Not logged in' });
   try {
-    const p    = jwt.verify(h.slice(7), SECRET);
+    const p = jwt.verify(h.slice(7), SECRET);
     const user = await User.findById(p.id);
     if (!user) return res.status(401).json({ ok: false, error: 'Account not found' });
     req.user = user;
     next();
   } catch (e) {
-    return res.status(401).json({ ok: false, error: 'Session expired — please log in again' });
+    return res.status(401).json({ ok: false, error: 'Session expired' });
   }
 }
 
-function requireAdmin(req, res, next) {
-  if (!req.user.is_admin)
-    return res.status(403).json({ ok: false, error: 'Admin access required' });
-  next();
-}
-
 /* ════════════════════════════════════════
-   POST /api/auth/register
+   API ROUTES
 ════════════════════════════════════════ */
+
 app.post('/api/auth/register', loginLimit, async (req, res) => {
   try {
     const username = String(req.body.username || '').trim();
     const password = String(req.body.password || '');
-
-    if (!username || username.length < 3) return res.status(400).json({ ok: false, error: 'Username must be at least 3 chars' });
-    if (!password || password.length < 6) return res.status(400).json({ ok: false, error: 'Password must be at least 6 chars' });
+    if (!username || password.length < 6) return res.status(400).json({ ok: false, error: 'Invalid data' });
 
     if (await User.findByUsername(username))
-      return res.status(409).json({ ok: false, error: 'Username already taken' });
+      return res.status(409).json({ ok: false, error: 'Username taken' });
 
     const hash = await bcrypt.hash(password, 10);
     await User.create(username, hash);
-
-    res.status(201).json({ ok: true, message: 'Account created! Admin approval required.' });
+    res.status(201).json({ ok: true, message: 'Account created! Needs admin approval.' });
   } catch (e) {
-    res.status(500).json({ ok: false, error: 'Server error: ' + e.message });
+    res.status(500).json({ ok: false, error: 'DB Error: ' + e.message });
   }
 });
 
-/* ════════════════════════════════════════
-   POST /api/auth/login
-════════════════════════════════════════ */
 app.post('/api/auth/login', loginLimit, async (req, res) => {
   try {
-    const username = String(req.body.username || '').trim();
-    const password = String(req.body.password || '');
-
+    const { username, password } = req.body;
     const user = await User.findByUsername(username);
     if (!user || !(await bcrypt.compare(password, user.password)))
-      return res.status(401).json({ ok: false, error: 'Wrong username or password' });
+      return res.status(401).json({ ok: false, error: 'Wrong credentials' });
 
     await User.updateLastLogin(user.id);
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username, is_admin: !!user.is_admin },
-      SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({ ok: true, token, user: { id: user.id, username: user.username, is_approved: !!user.is_approved, is_admin: !!user.is_admin } });
+    const token = jwt.sign({ id: user.id, is_admin: !!user.is_admin }, SECRET, { expiresIn: '7d' });
+    res.json({ ok: true, token, user: { username: user.username, is_approved: !!user.is_approved, is_admin: !!user.is_admin } });
   } catch (e) {
-    res.status(500).json({ ok: false, error: 'Server error: ' + e.message });
+    res.status(500).json({ ok: false, error: 'Login Error: ' + e.message });
   }
 });
 
-/* ════════════════════════════════════════
-   POST /api/solve
-════════════════════════════════════════ */
 app.post('/api/solve', requireAuth, solveLimit, async (req, res) => {
   try {
-    const u = req.user;
-    if (!u.is_approved && !u.is_admin) return res.status(403).json({ ok: false, error: 'Pending approval' });
-
+    if (!req.user.is_approved && !req.user.is_admin) 
+      return res.status(403).json({ ok: false, error: 'Pending approval' });
+    
     const { grid } = req.body;
     if (!validateGrid(grid)) return res.status(400).json({ ok: false, error: 'Invalid grid' });
-
-    const result = solveIDDFS(grid); // افتراضاً أن الـ solver جاهز
+    
+    const result = solveIDDFS(grid);
     res.json({ ok: true, ...result });
   } catch (e) {
-    res.status(500).json({ ok: false, error: 'Solver error: ' + e.message });
+    res.status(500).json({ ok: false, error: 'Solver error' });
   }
 });
 
-// ... يمكنك إضافة بقية الـ Admin Routes هنا بنفس الطريقة ...
-
-/* SPA fallback */
-app.get('*', (_req, res) =>
-  res.sendFile(path.join(__dirname, 'public', 'index.html'))
-);
+app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 /* ════════════════════════════════════════
-   START - تشغيل السيرفر والداتابيز
-════════════════════════════════════════ */
-/* ════════════════════════════════════════
-   START - تشغيل السيرفر والداتابيز
+   START ENGINE - الجرافة اللي هتبني الداتابيز
 ════════════════════════════════════════ */
 async function start() {
-  console.log('\n🐉 Starting Server...');
+  console.log('🚀 Initializing System...');
   try {
+    // 1. اختبار الاتصال بالداتابيز
     await testConnection();
-    
-    // الحل القاتل: تنفيذ SQL يدوي لإنشاء الجداول لو مش موجودة
+    console.log('🔗 Connected to Aiven MySQL.');
+
+    // 2. بناء الجداول يدوياً فوراً (الحل الجذري)
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -156,12 +127,10 @@ async function start() {
         last_login DATETIME DEFAULT NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      );
+      ) ENGINE=InnoDB;
     `);
-    
-    console.log('✅ Users table is ready (Manually Created)');
+    console.log('✅ Users table verified.');
 
-    // كود إضافي لإنشاء جدول الـ logs لو محتاجه
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS solve_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -170,18 +139,19 @@ async function start() {
         move VARCHAR(10),
         score INT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+      ) ENGINE=InnoDB;
     `);
+    console.log('✅ Logs table verified.');
 
+    // 3. تشغيل السيرفر
     app.listen(PORT, '0.0.0.0', () => {
-      console.log('🚀 SERVER IS LIVE!');
+      console.log(`\n⭐ SUCCESS! Server is live on port ${PORT}`);
     });
+
   } catch (e) {
-    console.error('❌ FATAL ERROR:', e.message);
+    console.error('\n❌ FATAL BOOT ERROR:', e.message);
   }
 }
-// تشغيل الفانكشن
-start();
 
-// مهم جداً لـ Vercel
+start();
 module.exports = app;
