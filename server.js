@@ -65,7 +65,13 @@ app.post('/api/auth/register', loginLimit, async (req, res) => {
       return res.status(409).json({ ok: false, error: 'Username taken' });
 
     const hash = await bcrypt.hash(password, 10);
-    await User.create(username, hash);
+
+    // ✅ التعديل هنا: نمرر Object ليتوافق مع Sequelize
+    await User.create({ 
+      username: username, 
+      password: hash 
+    });
+
     res.status(201).json({ ok: true, message: 'Account created! Needs admin approval.' });
   } catch (e) {
     res.status(500).json({ ok: false, error: 'DB Error: ' + e.message });
@@ -105,17 +111,16 @@ app.post('/api/solve', requireAuth, solveLimit, async (req, res) => {
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 /* ════════════════════════════════════════
-   START ENGINE - الجرافة اللي هتبني الداتابيز
+   START ENGINE
 ════════════════════════════════════════ */
 async function start() {
   console.log('🛠️ Starting Boot Sequence...');
   try {
-    // التأكد من الاتصال
+    // 1. اختبار الاتصال
     await sequelize.authenticate();
     console.log('✅ Connection to Aiven has been established successfully.');
 
-    // بناء الجداول أوتوماتيكياً بناءً على الموديلات الجديدة
-    // السطر ده هو اللي هيحل مشكلة "Table doesn't exist" نهائياً
+    // 2. بناء الجداول أوتوماتيكياً (هذا السطر هو المفتاح)
     await sequelize.sync({ alter: true });
     console.log('✅ DATABASE SYNCED & TABLES CREATED!');
 
@@ -128,3 +133,5 @@ async function start() {
 }
 
 start();
+
+module.exports = app;
