@@ -108,50 +108,23 @@ app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.h
    START ENGINE - الجرافة اللي هتبني الداتابيز
 ════════════════════════════════════════ */
 async function start() {
-  console.log('🚀 Initializing System...');
+  console.log('🛠️ Starting Boot Sequence...');
   try {
-    // 1. اختبار الاتصال بالداتابيز
-    await testConnection();
-    console.log('🔗 Connected to Aiven MySQL.');
+    // التأكد من الاتصال
+    await sequelize.authenticate();
+    console.log('✅ Connection to Aiven has been established successfully.');
 
-    // 2. بناء الجداول يدوياً فوراً (الحل الجذري)
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(100) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
-        is_approved TINYINT(1) DEFAULT 0,
-        is_admin TINYINT(1) DEFAULT 0,
-        fingerprint VARCHAR(255) DEFAULT NULL,
-        solve_count INT DEFAULT 0,
-        last_login DATETIME DEFAULT NULL,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB;
-    `);
-    console.log('✅ Users table verified.');
+    // بناء الجداول أوتوماتيكياً بناءً على الموديلات الجديدة
+    // السطر ده هو اللي هيحل مشكلة "Table doesn't exist" نهائياً
+    await sequelize.sync({ alter: true });
+    console.log('✅ DATABASE SYNCED & TABLES CREATED!');
 
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS solve_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT,
-        grid_json TEXT,
-        move VARCHAR(10),
-        score INT,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB;
-    `);
-    console.log('✅ Logs table verified.');
-
-    // 3. تشغيل السيرفر
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n⭐ SUCCESS! Server is live on port ${PORT}`);
+      console.log(`🚀 SERVER IS LIVE ON PORT ${PORT}`);
     });
-
   } catch (e) {
-    console.error('\n❌ FATAL BOOT ERROR:', e.message);
+    console.error('❌ FATAL BOOT ERROR:', e.message);
   }
 }
 
 start();
-module.exports = app;
